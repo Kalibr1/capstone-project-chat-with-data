@@ -91,8 +91,6 @@ It should open up in your browser automatically.
 
 ## Screenshots
 
-_(Here's where you'd paste in your own screenshots for the project report)_
-
 ### Main App Interface
 
 ![A screenshot of the main chat interface, showing the sidebar and chat history](https://github.com/user-attachments/assets/b8efc92b-39aa-466c-823e-19517553732e)
