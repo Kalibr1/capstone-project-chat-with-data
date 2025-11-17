@@ -1,8 +1,3 @@
-Here is the raw Markdown code for your README.md.
-You can copy everything from line 5 to the end of this comment block.
-
----
-
 # Capstone Project: Chat with Data
 
 This is my project for the Generative AI capstone. I built a Streamlit app that lets you have a conversation with a database full of movies.
