@@ -5,7 +5,7 @@ import pandas as pd
 import logging
 import json
 import os
-# We do not need the 'Part' import, so it is removed.
+import requests  # <-- ADDED IMPORT
 
 # --- Configuration ---
 DB_FILENAME = "movies.db"
@@ -106,26 +106,76 @@ def query_database(sql_query: str) -> str:
         logger.error(f"Unexpected error: {e}")
         return json.dumps({"error": "An unexpected error occurred."})
 
-# --- Tool 2: Support Ticket Tool (Mocked) ---
+# --- Tool 2: Support Ticket Tool (GitHub) ---
 def create_support_ticket(title: str, description: str) -> str:
     """
-    Creates a new support ticket in the issue tracking system.
-    For this demo, it simulates the ticket creation.
+    Creates a new GitHub issue in the specified repository.
     """
-    logger.info(f"Attempting to create ticket: {title}")
+    logger.info(f"Attempting to create GitHub issue: {title}")
 
+    # Check for secrets
+    if "GITHUB_TOKEN" not in st.secrets or "GITHUB_REPO" not in st.secrets:
+        logger.error("Missing GITHUB_TOKEN or GITHUB_REPO in Streamlit secrets.")
+        return json.dumps({
+            "error": "Failed to create ticket: Server is missing GitHub configuration."
+        })
 
-    # Mocking the response
-    ticket_id = f"TICKET-{pd.Timestamp.now().strftime('%Y%m%d%H%M')}"
-    logger.info(f"Successfully created mock ticket: {ticket_id}")
+    try:
+        token = st.secrets["GITHUB_TOKEN"]
+        # e.g., "Kalibr1/capstone-project-chat-with-data"
+        repo_url = st.secrets["GITHUB_REPO"]
+        
+        # GitHub API endpoint for issues
+        api_url = f"https://api.github.com/repos/{repo_url}/issues"
+        
+        # Setup headers and data for the API request
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github.v3+json",
+        }
+        data = {
+            "title": title,
+            "body": description,
+        }
 
-    response = {
-        "status": "success",
-        "ticket_id": ticket_id,
-        "title": title,
-        "message": f"Support ticket '{ticket_id}' has been successfully created. A human will review it shortly."
-    }
-    return json.dumps(response)
+        # Make the POST request to create the issue
+        response = requests.post(api_url, json=data, headers=headers)
+        
+        # Check the response
+        if response.status_code == 201:
+            # Success!
+            issue_data = response.json()
+            ticket_id = issue_data["number"]
+            ticket_url = issue_data["html_url"]
+            
+            logger.info(f"Successfully created GitHub issue #{ticket_id} at {ticket_url}")
+            
+            response_payload = {
+                "status": "success",
+                "ticket_id": f"GH-{ticket_id}",
+                "ticket_url": ticket_url,
+                "title": title,
+                "message": f"Support ticket GH-{ticket_id} has been successfully created. A human will review it at: {ticket_url}"
+            }
+            return json.dumps(response_payload)
+        else:
+            # Failed to create issue
+            logger.error(f"Failed to create GitHub issue. Status: {response.status_code}, Response: {response.text}")
+            return json.dumps({
+                "error": f"Failed to create ticket. GitHub API responded with status {response.status_code}.",
+                "details": response.text
+            })
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"An error occurred while making the request to GitHub: {e}")
+        return json.dumps({
+            "error": "Failed to create ticket: A network error occurred."
+        })
+    except Exception as e:
+        logger.error(f"An unexpected error in create_support_ticket: {e}")
+        return json.dumps({
+            "error": "An unexpected error occurred while creating the ticket."
+        })
 
 # --- Helper Functions for UI ---
 @st.cache_data
